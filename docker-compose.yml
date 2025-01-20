@@ -1,0 +1,19 @@
+services:
+  cdc-db-go:
+    container_name: cdc-db-go
+    image: postgres
+    ports:
+      - "5436:5432"
+    env_file:
+      - path: ./compose.env
+        required: true
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    profiles: [db]
+
+  mongodb-service:
+    container_name: mongodb-service
+    image: mongo
+    ports:
+      - "27017:27017"
+    profiles: [mongo]
