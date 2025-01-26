@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -36,6 +36,12 @@ export default function CreateTableModal({ isOpen, onClose }: CreateTableModalPr
       setColumns([...columns, { name: '', type: '' }])
     }
   }
+
+  useEffect(()=>{
+    if(columns.length<2){
+      setDisbaleCreateBtn(true)
+    }
+  },[columns])
 
   const handleRemoveColumn = (index: number) => {
     setColumns(columns.filter((_, i) => i !== index))
