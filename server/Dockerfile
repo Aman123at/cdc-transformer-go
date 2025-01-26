@@ -34,6 +34,9 @@ COPY --from=builder /app/cdc-go /app/cdc-go
 # Copy the .env file
 COPY .env .env
 
+COPY server.crt server.crt
+COPY server.key server.key
+
 # Expose the port your app runs on
 EXPOSE 8000
 
