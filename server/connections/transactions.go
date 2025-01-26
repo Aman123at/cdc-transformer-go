@@ -9,15 +9,29 @@ import (
 
 	"github.com/Aman123at/cdc-go/models"
 	"github.com/Aman123at/cdc-go/utils"
+	"github.com/gofrs/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func CreateNewTable(data models.CreateTableReq) error {
+func CreateNewTable(data models.CreateTableReq, sessionId string) error {
 	conn, poolerr := PgPool.Get()
 	defer PgPool.Put(conn)
 	if poolerr != nil {
 		log.Println("Unable to get connection from pool")
 		return poolerr
+	}
+
+	if sessionId == "" {
+		sessionID, _ := uuid.NewV4()
+		execerr := InsertSession(data.TableName, conn, (sessionID).String())
+		if execerr != nil {
+			return execerr
+		}
+	} else {
+		execerr := InsertSession(data.TableName, conn, sessionId)
+		if execerr != nil {
+			return execerr
+		}
 	}
 
 	query, err := utils.GenerateCreateTableQuery(data)
@@ -26,6 +40,19 @@ func CreateNewTable(data models.CreateTableReq) error {
 	}
 
 	res, execerr := conn.dbInstance.Exec(query)
+	if execerr != nil {
+		return execerr
+	}
+	log.Println(res.LastInsertId())
+	log.Println(res.RowsAffected())
+
+	return nil
+}
+
+func InsertSession(tablename string, conn *Connection, sessionID string) error {
+	query := "INSERT INTO sessiondata (sessionid,tablename,created_at,expired_at) VALUES ($1,$2,NOW(),NOW() + INTERVAL '48 hours');"
+
+	res, execerr := conn.dbInstance.Exec(query, sessionID, strings.ToLower(tablename))
 	if execerr != nil {
 		return execerr
 	}
@@ -164,14 +191,15 @@ type TableData struct {
 	Columns   []Column                 `json:"columns"`
 }
 
-func GetAllTablesData() ([]TableData, error) {
+func GetAllTablesData(sessionId string) ([]TableData, error) {
 	conn, poolerr := PgPool.Get()
 	defer PgPool.Put(conn)
 	if poolerr != nil {
 		return nil, fmt.Errorf("error getting connection from pool: %v", poolerr)
 	}
 
-	rows, err := conn.dbInstance.Query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
+	// rows, err := conn.dbInstance.Query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
+	rows, err := conn.dbInstance.Query("SELECT tablename FROM sessiondata WHERE sessionid = $1", sessionId)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching tables: %v", err)
 	}
@@ -306,29 +334,46 @@ type MongoCollectionData struct {
 	Documents      []map[string]interface{} `json:"documents"`
 }
 
-func GetAllCollectionsData() ([]MongoCollectionData, error) {
+func GetAllCollectionsData(sessionId string) ([]MongoCollectionData, error) {
+	conn, poolerr := PgPool.Get()
+	defer PgPool.Put(conn)
+	if poolerr != nil {
+		return nil, fmt.Errorf("error getting connection from pool: %v", poolerr)
+	}
+
+	// rows, err := conn.dbInstance.Query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
+	rows, err := conn.dbInstance.Query("SELECT tablename FROM sessiondata WHERE sessionid = $1", sessionId)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching tables: %v", err)
+	}
+	defer rows.Close()
 	var allData []MongoCollectionData
 
 	// Get all collection names
-	collections, err := MongodbConn.ListCollectionNames(context.Background(), bson.M{})
-	if err != nil {
-		return nil, fmt.Errorf("error fetching collections: %v", err)
-	}
+	// collections, err := MongodbConn.ListCollectionNames(context.Background(), bson.M{})
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error fetching collections: %v", err)
+	// }
 
 	// Iterate through each collection
-	for _, collName := range collections {
-		collection := MongodbConn.Collection(collName)
+	// for _, collName := range collections {
+	for rows.Next() {
+		var tableName string
+		if err := rows.Scan(&tableName); err != nil {
+			return nil, fmt.Errorf("error scanning table name: %v", err)
+		}
+		collection := MongodbConn.Collection(tableName)
 
 		// Find all documents in the collection
 		cursor, err := collection.Find(context.Background(), bson.M{})
 		if err != nil {
-			return nil, fmt.Errorf("error fetching documents from collection %s: %v", collName, err)
+			return nil, fmt.Errorf("error fetching documents from collection %s: %v", tableName, err)
 		}
 		defer cursor.Close(context.Background())
 
 		// Create collection data structure
 		collData := MongoCollectionData{
-			CollectionName: collName,
+			CollectionName: tableName,
 			Documents:      make([]map[string]interface{}, 0),
 		}
 

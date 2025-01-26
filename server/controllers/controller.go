@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"net/http"
 	"strings"
 
 	"github.com/Aman123at/cdc-go/connections"
@@ -13,24 +14,24 @@ func CreateTable(c *gin.Context) {
 	var body models.CreateTableReq
 
 	if binderr := c.BindJSON(&body); binderr != nil {
-		c.JSON(400, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	body.TableName = strings.TrimSpace(body.TableName)
 
 	if body.TableName == "" {
-		c.JSON(400, gin.H{"error": "Table name is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Table name is required"})
 		return
 	}
 
 	if len(body.TableName) > 25 {
-		c.JSON(400, gin.H{"error": "Table name should be under 25 characters"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Table name should be under 25 characters"})
 		return
 	}
 
 	if len(body.Columns) == 0 {
-		c.JSON(400, gin.H{"error": "Atleast one column is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Atleast one column is required"})
 		return
 	}
 
@@ -41,18 +42,18 @@ func CreateTable(c *gin.Context) {
 	duplicationErr := body.ValidateNoDuplicateColumns()
 
 	if duplicationErr != nil {
-		c.JSON(400, gin.H{"error": duplicationErr})
+		c.JSON(http.StatusBadRequest, gin.H{"error": duplicationErr})
 		return
 	}
 
-	err := connections.CreateNewTable(body)
+	err := connections.CreateNewTable(body, body.SessionID)
 
 	if err != nil {
-		c.JSON(400, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
 
-	c.JSON(200, gin.H{"message": "Created table successfully."})
+	c.JSON(http.StatusOK, gin.H{"message": "Created table successfully."})
 }
 
 type TableResponse struct {
@@ -64,53 +65,53 @@ func InsertRowController(c *gin.Context) {
 	var body models.InsertRowReq
 
 	if binderr := c.BindJSON(&body); binderr != nil {
-		c.JSON(400, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	body.TableName = strings.TrimSpace(body.TableName)
 
 	if body.TableName == "" {
-		c.JSON(400, gin.H{"error": "Table name is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Table name is required"})
 		return
 	}
 
 	if len(body.Row) == 0 {
-		c.JSON(400, gin.H{"error": "Row data is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Row data is required"})
 		return
 	}
 
 	err := connections.InsertRow(body)
 	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(200, gin.H{"message": "Row inserted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Row inserted successfully"})
 }
 
 func EditRowController(c *gin.Context) {
 	var body models.EditRowReq
 
 	if binderr := c.BindJSON(&body); binderr != nil {
-		c.JSON(400, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	body.TableName = strings.TrimSpace(body.TableName)
 
 	if body.TableName == "" {
-		c.JSON(400, gin.H{"error": "Table name is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Table name is required"})
 		return
 	}
 
 	if body.RowId == 0 {
-		c.JSON(400, gin.H{"error": "Row ID is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Row ID is required"})
 		return
 	}
 
 	if len(body.Row) == 0 {
-		c.JSON(400, gin.H{"error": "Update data is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Update data is required"})
 		return
 	}
 
@@ -118,30 +119,30 @@ func EditRowController(c *gin.Context) {
 
 	err := connections.EditRow(body, whereCondition)
 	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(200, gin.H{"message": "Row updated successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Row updated successfully"})
 }
 
 func DeleteRowController(c *gin.Context) {
 	var body models.DeleteRowReq
 
 	if binderr := c.BindJSON(&body); binderr != nil {
-		c.JSON(400, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	body.TableName = strings.TrimSpace(body.TableName)
 
 	if body.TableName == "" {
-		c.JSON(400, gin.H{"error": "Table name is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Table name is required"})
 		return
 	}
 
 	if body.RowId == 0 {
-		c.JSON(400, gin.H{"error": "Row ID is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Row ID is required"})
 		return
 	}
 
@@ -149,29 +150,39 @@ func DeleteRowController(c *gin.Context) {
 
 	err := connections.DeleteRow(body.TableName, whereCondition)
 	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(200, gin.H{"message": "Row deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Row deleted successfully"})
 }
 
 func GetAllTablesData(c *gin.Context) {
-	data, err := connections.GetAllTablesData()
+	sessionId := c.Param("sessionId")
+	if sessionId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Session Id is required"})
+		return
+	}
+	data, err := connections.GetAllTablesData(sessionId)
 	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(200, data)
+	c.JSON(http.StatusOK, data)
 }
 
 func GetAllCollectionsData(c *gin.Context) {
-	data, err := connections.GetAllCollectionsData()
+	sessionId := c.Param("sessionId")
+	if sessionId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Session Id is required"})
+		return
+	}
+	data, err := connections.GetAllCollectionsData(sessionId)
 	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(200, data)
+	c.JSON(http.StatusOK, data)
 }

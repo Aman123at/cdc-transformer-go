@@ -3,10 +3,12 @@
 import { deleteRowApi, getTables, insertRow } from '@/apiCalls/commonCalls';
 import { IRow, ITable } from '@/interfaces/commonInterface';
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import {v4 as uuidv4} from "uuid"
 
 export type PGContextType = {
   tables:  ITable[] | null;
   setTables: Function;
+  fetchTables:Function;
   handleInsertRow:(tablename:string,newRow: IRow)=>void;
   handleDeleteRow:(tablename:string,rowid: number)=>void;
 }
@@ -37,7 +39,9 @@ export function PGProvider({ children }: { children: React.ReactNode }) {
   }
 
   const fetchTables = async() =>{
-    const {data,err}:any = await getTables()
+    // get sessionid from localstorage
+    let sessionId = localStorage.getItem("cdc-session-id")
+    const {data,err}:any = await getTables(sessionId || "")
     if(err){
         setTables(null)
     }else{
@@ -53,7 +57,7 @@ export function PGProvider({ children }: { children: React.ReactNode }) {
   },[])
 
   return (
-    <PGContext.Provider value={{ tables, setTables, handleInsertRow, handleDeleteRow }}>
+    <PGContext.Provider value={{ tables, setTables, handleInsertRow, handleDeleteRow, fetchTables }}>
       {children}
     </PGContext.Provider>
   )

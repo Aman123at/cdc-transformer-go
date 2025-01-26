@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { X, Plus } from 'lucide-react'
-import { createTable } from '@/apiCalls/commonCalls'
+import { createTable, getTables } from '@/apiCalls/commonCalls'
+import {v4 as uuidv4} from "uuid"
+import { usePG } from '@/contexts/pgcontext'
 
 type Column = {
   name: string
@@ -24,6 +26,7 @@ const dataTypes = ['int', 'text', 'varchar(255)', 'boolean',  'timestamp',  'dou
 export default function CreateTableModal({ isOpen, onClose }: CreateTableModalProps) {
   const [tableName, setTableName] = useState('')
   const [disableCreateBtn,setDisbaleCreateBtn] = useState<boolean>(false)
+  const {fetchTables} = usePG()
   const [columns, setColumns] = useState<Column[]>([
     { name: 'id', type: 'int' }
   ])
@@ -39,7 +42,7 @@ export default function CreateTableModal({ isOpen, onClose }: CreateTableModalPr
   }
 
   const handleColumnChange = (index: number, field: 'name' | 'type', value: string) => {
-    if (value.length>10){
+    if (value.length>15){
       setDisbaleCreateBtn(true)
     }else{
       setDisbaleCreateBtn(false)
@@ -58,9 +61,15 @@ export default function CreateTableModal({ isOpen, onClose }: CreateTableModalPr
   const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault()
     if (tableName.trim() && columns.every(col => col.name && col.type)) {
+      let sessionid = localStorage.getItem("cdc-session-id")
+      if (!sessionid) {
+        sessionid = uuidv4()
+        localStorage.setItem("cdc-session-id",sessionid)
+      }
       const {data,err}:any = await createTable({
         name:tableName.trim(),
-        columns
+        columns,
+        sessionid
       })
       if(err){
         // show toast
@@ -69,6 +78,10 @@ export default function CreateTableModal({ isOpen, onClose }: CreateTableModalPr
       if(data){
         console.log("Table created successfully")
         cleanUp()
+        setTimeout(() => {
+          
+          fetchTables()
+        }, 1000);
       }
       
     }

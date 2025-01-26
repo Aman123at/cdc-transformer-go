@@ -64,9 +64,9 @@ export default function TableAccordion({ tableName, columns,rows }: ITableAccord
                       <TableCell key={column.name}>{row[column.name]}</TableCell>
                     ))}
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => handleEditColumn(columns[rowIndex])}>
+                      {/* <Button variant="ghost" size="icon" onClick={() => handleEditColumn(columns[rowIndex])}>
                         <Edit className="h-4 w-4" />
-                      </Button>
+                      </Button> */}
                       <Button variant="ghost" size="icon" onClick={() => deleteRow(row.id)}>
                         <Trash className="h-4 w-4" />
                       </Button>

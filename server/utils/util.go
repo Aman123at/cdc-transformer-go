@@ -32,14 +32,15 @@ func GenerateCreateTableQuery(data models.CreateTableReq) (string, error) {
 		}
 
 		// Build the column definition
-		columnDef := fmt.Sprintf("%s %s", name, typeStr)
+		columnDef := fmt.Sprintf("%s %s", strings.ToLower(name), typeStr)
 		columnDefs = append(columnDefs, columnDef)
 	}
 
+	tablename := strings.ToLower(data.TableName)
 	// Construct the final query
 	query := fmt.Sprintf(
 		"CREATE TABLE IF NOT EXISTS %s (\n    %s\n);",
-		data.TableName,
+		tablename,
 		strings.Join(columnDefs, ",\n    "),
 	)
 

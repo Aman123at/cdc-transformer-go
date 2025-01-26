@@ -25,6 +25,7 @@ type Column struct {
 type CreateTableReq struct {
 	TableName string   `json:"name" binding:"required"`
 	Columns   []Column `json:"columns" binding:"required"`
+	SessionID string   `json:"sessionid"`
 }
 
 type InsertRowReq struct {
@@ -41,6 +42,10 @@ type EditRowReq struct {
 type DeleteRowReq struct {
 	TableName string `json:"tablename"`
 	RowId     int    `json:"rowid"`
+}
+
+type CreateSessionReq struct {
+	TableName string `json:"tablename"`
 }
 
 func (req *CreateTableReq) ValidateNoDuplicateColumns() error {

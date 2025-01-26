@@ -17,7 +17,8 @@ export function MongoProvider({ children }: { children: React.ReactNode }) {
   const [collections, setCollections] = useState<ICollection[] | null>(null)
 
   const fetchCollections = async() =>{
-    const {data,err}:any = await getCollections()
+    let sessionid = localStorage.getItem("cdc-session-id")
+    const {data,err}:any = await getCollections(sessionid || "")
     if(err){
         setCollections(null)
     }else{

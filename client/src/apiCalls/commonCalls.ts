@@ -4,6 +4,7 @@ const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}`
 type Table = {
     name: string
     columns: Column[]
+    sessionid?:string
   }
 
   type Column = {
@@ -34,16 +35,16 @@ const createTable = async (tabledata: Table) => {
     );
 };
 
-const getTables = async () => {
+const getTables = async (sessionId:string) => {
     return apiWrapper(
-        () => axios.get(`${API_BASE_URL}/fetch/tables`),
+        () => axios.get(`${API_BASE_URL}/fetch/tables/${sessionId}`),
         "Something went wrong while fetching tables"
     );
 };
 
-const getCollections = async () => {
+const getCollections = async (sessionId:string) => {
     return apiWrapper(
-        () => axios.get(`${API_BASE_URL}/fetch/collections`),
+        () => axios.get(`${API_BASE_URL}/fetch/collections/${sessionId}`),
         "Something went wrong while fetching collections"
     );
 };
