@@ -1,14 +1,18 @@
 services:
   cdc-db-go:
+  # cdc-db-go-2:
     container_name: cdc-db-go
+    # container_name: cdc-db-go-2
     image: postgres
     ports:
       - "5436:5432"
+      # - "5437:5432"
     env_file:
       - path: ./compose.env
         required: true
     volumes:
       - ./data:/var/lib/postgresql/data
+      # - ./data-2:/var/lib/postgresql/data
     profiles: [db]
 
   mongodb-service:
@@ -17,3 +21,13 @@ services:
     ports:
       - "27017:27017"
     profiles: [mongo]
+
+  cdc-service:
+    container_name: cdc-service
+    build:
+      context: ./server
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    profiles: [service]
