@@ -44,7 +44,20 @@ func startHttpServer() {
 	}
 
 	port := os.Getenv("HTTP_PORT")
+	go_env := os.Getenv("GO_ENV")
+	cert_file_path := os.Getenv("CERT_FILE_PATH")
+	key_file_path := os.Getenv("KEY_FILE_PATH")
 	httpPort := fmt.Sprintf(":%s", port)
 	router := router.Router()
-	router.Run(httpPort)
+	if go_env == "prod" {
+		err := router.RunTLS(httpPort, cert_file_path, key_file_path)
+		if err != nil {
+			log.Fatal("Failed to start server on prod: ", err)
+		}
+	} else {
+		err := router.Run(httpPort)
+		if err != nil {
+			log.Fatal("Failed to start server: ", err)
+		}
+	}
 }
